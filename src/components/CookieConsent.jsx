@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 const STORAGE_KEY = "cookie_consent_accepted";
 
@@ -20,7 +21,8 @@ export default function CookieConsent() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-background/95 backdrop-blur-md"
+      className="fixed bottom-0 left-0 right-0 border-t border-white/10 bg-background/95 backdrop-blur-md"
+      style={{ zIndex: 99999 }}
       role="dialog"
       aria-label="Уведомление об использовании cookie"
     >
@@ -31,6 +33,12 @@ export default function CookieConsent() {
           с их использованием.
         </p>
         <div className="flex items-center gap-3 shrink-0">
+          <Link
+            to="/privacy"
+            className="px-5 py-2.5 text-sm font-medium rounded-lg border border-white/10 text-foreground hover:bg-white/5 transition-colors"
+          >
+            Подробнее
+          </Link>
           <button
             type="button"
             onClick={accept}

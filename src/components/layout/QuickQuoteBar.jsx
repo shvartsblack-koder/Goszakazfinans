@@ -16,7 +16,7 @@ export default function QuickQuoteBar() {
       initial={{ y: 100 }}
       animate={{ y: 0 }}
       transition={{ delay: 1.5, duration: 0.5 }}
-      className="fixed bottom-0 left-0 right-0 z-50 h-12 glass-strong border-t border-white/5"
+      className="fixed bottom-0 left-0 right-0 z-40 h-12 glass-strong border-t border-white/5"
     >
       <div className="max-w-[1400px] mx-auto px-6 h-full flex items-center justify-between gap-4">
         <span className="hidden sm:block text-xs text-muted-foreground tracking-widest uppercase">

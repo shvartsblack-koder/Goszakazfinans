@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Send, Check, Loader2, Phone, Mail, Building2, MapPin, Calendar, Banknote } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -260,7 +261,9 @@ export default function RequestForm() {
                   className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
                 >
                   Я даю согласие на обработку персональных данных в соответствии с{" "}
-                  <span className="text-primary hover:underline">политикой конфиденциальности</span>
+                  <Link to="/privacy" className="text-primary hover:underline">
+                    политикой конфиденциальности
+                  </Link>
                 </label>
               </div>
 

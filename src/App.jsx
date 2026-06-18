@@ -6,6 +6,7 @@ import { AuthProvider } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import CookieConsent from './components/CookieConsent';
 import Home from './pages/Home';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
 
@@ -17,10 +18,11 @@ function App() {
           <ScrollToTop />
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
           </Routes>
+          <CookieConsent />
         </Router>
         <Toaster />
-        <CookieConsent />
       </QueryClientProvider>
     </AuthProvider>
   )
