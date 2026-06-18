@@ -7,11 +7,13 @@ import ScrollToTop from './components/ScrollToTop';
 import CookieConsent from './components/CookieConsent';
 import Home from './pages/Home';
 
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
+
 function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
-        <Router>
+        <Router basename={routerBasename}>
           <ScrollToTop />
           <Routes>
             <Route path="/" element={<Home />} />

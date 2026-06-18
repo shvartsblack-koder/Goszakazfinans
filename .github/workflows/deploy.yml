@@ -23,8 +23,10 @@ jobs:
         with:
           node-version: 20
       - run: npm install
+      # GitHub Pages project site — repo name casing matters: /Goszakazfinans/
       - run: npm run build
         env:
+          VITE_BASE: ${{ vars.VITE_BASE || '/Goszakazfinans/' }}
           VITE_LEADS_WEBHOOK_URL: ${{ secrets.VITE_LEADS_WEBHOOK_URL }}
           VITE_PROJECT_NAME: goszakazfinans
       - run: cp dist/index.html dist/404.html
