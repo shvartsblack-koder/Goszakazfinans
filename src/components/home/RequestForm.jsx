@@ -31,13 +31,44 @@ export default function RequestForm() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!consentChecked) return;
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-    }, 1500);
+    const webhookUrl = import.meta.env.VITE_LEADS_WEBHOOK_URL;
+    const sourceDetails = [
+      window.location.pathname,
+      formData.service && `услуга: ${formData.service}`,
+      formData.company && `компания: ${formData.company}`,
+      formData.city && `город: ${formData.city}`,
+      formData.amount && `сумма: ${formData.amount}`,
+      formData.term && `срок: ${formData.term}`,
+      formData.lotNumber && `лот: ${formData.lotNumber}`,
+      formData.note && `примечание: ${formData.note}`,
+    ].filter(Boolean).join(' | ');
+
+    try {
+      if (webhookUrl) {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email || '',
+            phone: formData.phone,
+            consent: true,
+            project: import.meta.env.VITE_PROJECT_NAME || 'goszakazfinans',
+            source: sourceDetails,
+            timestamp: new Date().toISOString(),
+          }),
+        });
+      }
+    } catch (err) {
+      console.error('Lead submission error:', err);
+    }
+    setLoading(false);
+    setSubmitted(true);
   };
 
   if (submitted) {
