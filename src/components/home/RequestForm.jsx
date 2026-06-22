@@ -1,16 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Send, Check, Loader2, Phone, Mail, Building2, MapPin, Calendar, Banknote } from "lucide-react";
+import { Send, Check, Loader2, Phone, Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  validateLeadFields,
+  isValidLotNumber,
+  VALIDATION_MESSAGES,
+} from "@/lib/formValidation";
+import { submitLead } from "@/lib/submitLead";
+
+function FieldError({ message }) {
+  if (!message) return null;
+  return <p className="text-destructive text-xs mt-1">{message}</p>;
+}
 
 export default function RequestForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     service: "",
     name: "",
@@ -27,48 +39,78 @@ export default function RequestForm() {
     note: "",
   });
 
+  useEffect(() => {
+    const inn = sessionStorage.getItem('quickQuoteInn');
+    if (inn) {
+      setFormData((prev) => ({
+        ...prev,
+        note: prev.note ? `${prev.note}\nИНН: ${inn}` : `ИНН: ${inn}`,
+      }));
+      sessionStorage.removeItem('quickQuoteInn');
+    }
+  }, []);
+
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!consentChecked) return;
+
+    const nextErrors = {};
+    if (!formData.service) {
+      nextErrors.service = VALIDATION_MESSAGES.service;
+    }
+
+    const { errors: leadErrors } = validateLeadFields({
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      emailRequired: false,
+      phoneRequired: true,
+    });
+    Object.assign(nextErrors, leadErrors);
+
+    if (!isValidLotNumber(formData.lotNumber)) {
+      nextErrors.lotNumber = VALIDATION_MESSAGES.lotNumber;
+    }
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setLoading(true);
-    const webhookUrl = import.meta.env.VITE_LEADS_WEBHOOK_URL;
     const sourceDetails = [
       window.location.pathname,
       formData.service && `услуга: ${formData.service}`,
       formData.company && `компания: ${formData.company}`,
       formData.city && `город: ${formData.city}`,
+      formData.regDate && `дата регистрации: ${formData.regDate}`,
       formData.amount && `сумма: ${formData.amount}`,
       formData.term && `срок: ${formData.term}`,
+      formData.deadline && `крайний срок: ${formData.deadline}`,
+      formData.lotUrl && `ссылка на лот: ${formData.lotUrl}`,
       formData.lotNumber && `лот: ${formData.lotNumber}`,
       formData.note && `примечание: ${formData.note}`,
     ].filter(Boolean).join(' | ');
 
     try {
-      if (webhookUrl) {
-        await fetch(webhookUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email || '',
-            phone: formData.phone,
-            consent: true,
-            project: import.meta.env.VITE_PROJECT_NAME || 'goszakazfinans',
-            source: sourceDetails,
-            timestamp: new Date().toISOString(),
-          }),
-        });
-      }
+      await submitLead({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        source: sourceDetails,
+        consent: true,
+      });
+      setSubmitted(true);
     } catch (err) {
       console.error('Lead submission error:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-    setSubmitted(true);
   };
 
   if (submitted) {
@@ -151,12 +193,12 @@ export default function RequestForm() {
             viewport={{ once: true }}
             className="lg:col-span-3"
           >
-            <form onSubmit={handleSubmit} className="glass-strong rounded-2xl p-6 lg:p-8 space-y-6">
+            <form onSubmit={handleSubmit} noValidate className="glass-strong rounded-2xl p-6 lg:p-8 space-y-6">
               {/* Service type */}
               <div>
                 <label className="text-xs text-muted-foreground mb-2 block tracking-wide uppercase">Тип услуги *</label>
                 <Select value={formData.service} onValueChange={(v) => handleChange("service", v)}>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-foreground">
+                  <SelectTrigger className={`bg-white/5 text-foreground ${errors.service ? 'border-destructive' : 'border-white/10'}`}>
                     <SelectValue placeholder="Выберите услугу" />
                   </SelectTrigger>
                   <SelectContent>
@@ -167,6 +209,7 @@ export default function RequestForm() {
                     <SelectItem value="investment">Привлечение инвестиций</SelectItem>
                   </SelectContent>
                 </Select>
+                <FieldError message={errors.service} />
               </div>
 
               {/* Contact info */}
@@ -177,8 +220,9 @@ export default function RequestForm() {
                     placeholder="ФИО"
                     value={formData.name}
                     onChange={(e) => handleChange("name", e.target.value)}
-                    className="bg-white/5 border-white/10 text-foreground placeholder:text-muted-foreground/40"
+                    className={`bg-white/5 text-foreground placeholder:text-muted-foreground/40 ${errors.name ? 'border-destructive' : 'border-white/10'}`}
                   />
+                  <FieldError message={errors.name} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-2 block tracking-wide uppercase">Телефон *</label>
@@ -186,17 +230,20 @@ export default function RequestForm() {
                     placeholder="+7 (___) ___-__-__"
                     value={formData.phone}
                     onChange={(e) => handleChange("phone", e.target.value)}
-                    className="bg-white/5 border-white/10 text-foreground placeholder:text-muted-foreground/40 font-mono"
+                    className={`bg-white/5 text-foreground placeholder:text-muted-foreground/40 font-mono ${errors.phone ? 'border-destructive' : 'border-white/10'}`}
                   />
+                  <FieldError message={errors.phone} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-2 block tracking-wide uppercase">E-mail</label>
                   <Input
+                    type="email"
                     placeholder="email@company.ru"
                     value={formData.email}
                     onChange={(e) => handleChange("email", e.target.value)}
-                    className="bg-white/5 border-white/10 text-foreground placeholder:text-muted-foreground/40"
+                    className={`bg-white/5 text-foreground placeholder:text-muted-foreground/40 ${errors.email ? 'border-destructive' : 'border-white/10'}`}
                   />
+                  <FieldError message={errors.email} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-2 block tracking-wide uppercase">Компания</label>
@@ -263,8 +310,9 @@ export default function RequestForm() {
                     placeholder="Только цифры"
                     value={formData.lotNumber}
                     onChange={(e) => handleChange("lotNumber", e.target.value)}
-                    className="bg-white/5 border-white/10 text-foreground placeholder:text-muted-foreground/40 font-mono"
+                    className={`bg-white/5 text-foreground placeholder:text-muted-foreground/40 font-mono ${errors.lotNumber ? 'border-destructive' : 'border-white/10'}`}
                   />
+                  <FieldError message={errors.lotNumber} />
                 </div>
               </div>
 
