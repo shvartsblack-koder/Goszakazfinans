@@ -21,6 +21,7 @@ function FieldError({ message }) {
 export default function RequestForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const [consentChecked, setConsentChecked] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
@@ -83,6 +84,7 @@ export default function RequestForm() {
     if (Object.keys(nextErrors).length > 0) return;
 
     setLoading(true);
+    setSubmitError('');
     const sourceDetails = [
       window.location.pathname,
       formData.service && `услуга: ${formData.service}`,
@@ -108,6 +110,7 @@ export default function RequestForm() {
       setSubmitted(true);
     } catch (err) {
       console.error('Lead submission error:', err);
+      setSubmitError('Не удалось отправить заявку. Попробуйте ещё раз.');
     } finally {
       setLoading(false);
     }
@@ -345,6 +348,8 @@ export default function RequestForm() {
                   </Link>
                 </label>
               </div>
+
+              {submitError && <FieldError message={submitError} />}
 
               {/* Submit */}
               <button
